@@ -590,6 +590,10 @@ class VideoClip(Clip):
 
         pos = map(int, pos)
 
+        if not self.ismask:
+            img = img.astype('uint8')
+            picture = picture.astype('uint8')
+
         return blit(img, picture, pos, mask=mask, ismask=self.ismask)
 
     def add_mask(self):
