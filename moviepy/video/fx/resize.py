@@ -106,14 +106,7 @@ def resize(clip, newsize=None, height=None, width=None, apply_to_mask=True):
             
             newsize2 = lambda t : trans_newsize(newsize(t))
             
-            if clip.ismask:
-                
-                fun = lambda gf,t: (1.0*resizer((255 * gf(t)).astype('uint8'),
-                                                 newsize2(t))/255)
-            else:
-                
-                fun = lambda gf,t: resizer(gf(t).astype('uint8'),
-                                          newsize2(t))
+            fun = lambda gf,t: resizer(gf(t).astype('uint8'), newsize2(t))
                 
             return clip.fl(fun, keep_duration=True,
                            apply_to= (["mask"] if apply_to_mask else []))
@@ -145,11 +138,7 @@ def resize(clip, newsize=None, height=None, width=None, apply_to_mask=True):
         
     # From here, the resizing is constant (not a function of time), size=newsize
 
-    if clip.ismask:
-        fl = lambda pic: 1.0*resizer((255 * pic).astype('uint8'), newsize)/255.0
-            
-    else:
-        fl = lambda pic: resizer(pic.astype('uint8'), newsize)
+    fl = lambda pic: resizer(pic.astype('uint8'), newsize)
 
     newclip = clip.fl_image(fl)
 
