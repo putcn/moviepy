@@ -528,13 +528,13 @@ class VideoClip(Clip):
         if dx < 0:
             post_array = pre_array[:shape[0]]
         elif dx > 0:
-            x_1 = [[[1, 1, 1]] * pre_shape[1]] * dx
-            post_array = np.vstack((pre_array, x_1))
+            x_1 = [[[255, 255, 255]] * pre_shape[1]] * dx
+            post_array = np.vstack((pre_array, x_1)).astype('uint8')
         if dy < 0:
             post_array = post_array[:, :shape[1]]
         elif dy > 0:
-            x_1 = [[[1, 1, 1]] * dy] * post_array.shape[0]
-            post_array = np.hstack((post_array, x_1))
+            x_1 = [[[255, 255, 255]] * dy] * post_array.shape[0]
+            post_array = np.hstack((post_array, x_1)).astype('uint8')
         return post_array
 
     def blit_on(self, picture, t):
@@ -544,9 +544,8 @@ class VideoClip(Clip):
         by the clip's ``pos`` attribute. Meant for compositing.
         """
         hf, wf = framesize = picture.shape[:2]
-
         if self.ismask and picture.max() != 0:
-            return np.minimum(1, picture + self.blit_on(np.zeros(framesize), t))
+            return np.minimum(255, picture.astype('uint16') + self.blit_on(np.zeros(framesize, dtype='uint8'), t))
 
         ct = t - self.start  # clip time
 
@@ -556,6 +555,8 @@ class VideoClip(Clip):
         mask = (None if (self.mask is None) else
                 self.mask.get_frame(ct))
         if mask is not None:
+            if mask.dtype != 'uint8' or mask.dtype != 'uint16':
+                mask = mask.astype('uint8')
             if (img.shape[0] != mask.shape[0]) or (img.shape[1] != mask.shape[1]):
                 img = self.fill_array(img, mask.shape)
         hi, wi = img.shape[:2]
@@ -590,7 +591,14 @@ class VideoClip(Clip):
 
         pos = map(int, pos)
 
-        return blit(img, picture, pos, mask=mask, ismask=self.ismask)
+        if img.dtype != 'uint8':
+            img = img.astype('uint8')
+        if picture.dtype != 'uint8':
+            pic = picture.astype('uint8')
+        else:
+            pic = +picture
+
+        return blit(img, pic, pos, mask=mask, ismask=self.ismask)
 
     def add_mask(self):
         """Add a mask VideoClip to the VideoClip.
@@ -603,10 +611,10 @@ class VideoClip(Clip):
         image size.
         """
         if self.has_constant_size:
-            mask = ColorClip(self.size, 1.0, ismask=True)
+            mask = ColorClip(self.size, 255, ismask=True)
             return self.set_mask(mask.set_duration(self.duration))
         else:
-            make_frame = lambda t: np.ones(self.get_frame(t).shape[:2], dtype=float)
+            make_frame = lambda t: 255 * np.ones(self.get_frame(t).shape[:2], dtype='uint8')
             mask = VideoClip(ismask=True, make_frame=make_frame)
             return self.set_mask(mask.set_duration(self.duration))
 
@@ -692,13 +700,16 @@ class VideoClip(Clip):
 
     @add_mask_if_none
     @outplace
-    def set_opacity(self, op):
+    def set_opacity(self, op, approx=True):
         """Set the opacity/transparency level of the clip.
 
         Returns a semi-transparent copy of the clip where the mask is
         multiplied by ``op`` (any float, normally between 0 and 1).
         """
-        self.mask = self.mask.fl_image(lambda pic: op * pic)
+        if approx:
+            self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic).astype('uint16') >> 8, 255).astype('uint8'))
+        else:
+            self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic) / 255, 255).astype('uint8'))
 
     @apply_to_mask
     @outplace
@@ -753,15 +764,14 @@ class VideoClip(Clip):
         if self.ismask:
             return self
         else:
-            newclip = self.fl_image(lambda pic:
-                                    1.0 * pic[:, :, canal] / 255)
+            newclip = self.fl_image(lambda pic: pic[:, :, canal])
             newclip.ismask = True
             return newclip
 
     def to_RGB(self):
         """Return a non-mask video clip made from the mask video clip."""
         if self.ismask:
-            f = lambda pic: np.dstack(3 * [255 * pic]).astype('uint8')
+            f = lambda pic: np.dstack(3 * [pic]).astype('uint8')
             newclip = self.fl_image(f)
             newclip.ismask = False
             return newclip
@@ -921,15 +931,15 @@ class ImageClip(VideoClip):
 
             if img.shape[2] == 4:
                 if fromalpha:
-                    img = 1.0 * img[:, :, 3] / 255
+                    img = img[:, :, 3]
                 elif ismask:
-                    img = 1.0 * img[:, :, 0] / 255
+                    img = img[:, :, 0]
                 elif transparent:
                     self.mask = ImageClip(
-                        1.0 * img[:, :, 3] / 255, ismask=True)
+                        img[:, :, 3], ismask=True)
                     img = img[:, :, :3]
             elif ismask:
-                img = 1.0 * img[:, :, 0] / 255
+                img = img[:, :, 0]
 
         # if the image was just a 2D mask, it should arrive here
         # unchanged
