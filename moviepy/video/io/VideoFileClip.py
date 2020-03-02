@@ -77,7 +77,7 @@ class VideoFileClip(VideoClip):
 
     def __init__(self, filename, has_mask=False,
                  audio=True, audio_buffersize=200000,
-                 target_resolution=None, resize_algorithm='bicubic',
+                 target_resolution=None, resize_algorithm='bilinear',
                  audio_fps=44100, audio_nbytes=2, verbose=False,
                  fps_source='tbr'):
 

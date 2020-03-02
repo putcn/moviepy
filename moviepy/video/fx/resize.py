@@ -7,6 +7,8 @@ try:
     import numpy as np
     def resizer (pic, newsize):
         lx, ly = int(newsize[0]), int(newsize[1])
+        if lx == pic.shape[1] and ly == pic.shape[0]:
+            return +pic
         if lx > pic.shape[1] or ly > pic.shape[0]:
             # For upsizing use linear for good quality & decent speed
             interpolation = cv2.INTER_LINEAR

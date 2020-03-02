@@ -24,7 +24,7 @@ class FFMPEG_VideoReader:
 
     def __init__(self, filename, print_infos=False, bufsize = None,
                  pix_fmt="rgb24", check_duration=True,
-                 target_resolution=None, resize_algo='bicubic',
+                 target_resolution=None, resize_algo='bilinear',
                  fps_source='tbr'):
 
         self.filename = filename

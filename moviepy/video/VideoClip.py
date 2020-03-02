@@ -122,7 +122,7 @@ class VideoClip(Clip):
         im = self.get_frame(t)
 
         if withmask and self.mask is not None:
-            mask = 255 * self.mask.get_frame(t)
+            mask = self.mask.get_frame(t)
             im = np.dstack([im, mask]).astype('uint8')
         else:
             im = im.astype("uint8")
@@ -703,7 +703,7 @@ class VideoClip(Clip):
         multiplied by ``op`` (any float, normally between 0 and 1).
         """
         if approx:
-            self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic).astype('uint16') >> 8, 255).astype('uint8'))
+            self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic.astype('uint16')).astype('uint16') >> 8, 255).astype('uint8'))
         else:
             self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic) / 255, 255).astype('uint8'))
 
@@ -768,7 +768,7 @@ class VideoClip(Clip):
     def to_RGB(self):
         """Return a non-mask video clip made from the mask video clip."""
         if self.ismask:
-            f = lambda pic: np.dstack(3 * [pic]).astype('uint8')
+            f = lambda pic: np.dstack(3 * [pic]).astype('uint8', copy=False)
             newclip = self.fl_image(f)
             newclip.ismask = False
             return newclip
@@ -1049,7 +1049,7 @@ class ColorClip(ImageClip):
                 color = col
         w, h = size
         shape = (h, w) if np.isscalar(color) else (h, w, len(color))
-        ImageClip.__init__(self, np.tile(color, w * h).reshape(shape),
+        ImageClip.__init__(self, np.tile(color, w * h).reshape(shape).astype('uint8', copy=False),
                            ismask=ismask, duration=duration)
 
 
