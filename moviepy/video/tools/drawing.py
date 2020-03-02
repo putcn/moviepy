@@ -5,7 +5,7 @@ methods that are difficult to do with the existing Python libraries.
 
 import numpy as np
 
-def blit(im1, im2, pos=None, mask=None, ismask=False):
+def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
     """ Blit an image over another.
     
     Blits ``im1`` on ``im2`` as position ``pos=(x,y)``, using the
@@ -34,19 +34,24 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
 
     blitted = im1[y1:y2, x1:x2]
 
-    new_im2 = +im2
+    new_im2 = im2
 
     if mask is not None:
         mask = mask[y1:y2, x1:x2]
         if len(im1.shape) == 3:
             mask = np.dstack(3 * [mask])
+        mask = mask.astype('uint16')
         blit_region = new_im2[yp1:yp2, xp1:xp2]
-        new_im2[yp1:yp2, xp1:xp2] = (
-            1.0 * mask * blitted + (1.0 - mask) * blit_region)
+        if approx:
+            temp = (mask * blitted + (255 - mask) * blit_region) >> 8
+            new_im2[yp1:yp2, xp1:xp2] = temp.astype('uint8', copy=False)
+        else:
+            temp = np.minimum((mask * blitted + (255 - mask) * blit_region) / 255, 255)
+            new_im2[yp1:yp2, xp1:xp2] = temp.astype('uint8', copy=False)
     else:
         new_im2[yp1:yp2, xp1:xp2] = blitted
 
-    return new_im2.astype('uint8') if (not ismask) else new_im2
+    return new_im2
 
 
 
