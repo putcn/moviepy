@@ -3,6 +3,7 @@ This module deals with making images (np arrays). It provides drawing
 methods that are difficult to do with the existing Python libraries.
 """
 
+import blit_module
 import numpy as np
 
 def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
@@ -38,16 +39,16 @@ def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
 
     if mask is not None:
         mask = mask[y1:y2, x1:x2]
-        if len(im1.shape) == 3:
-            mask = np.dstack(3 * [mask])
-        mask = mask.astype('uint16')
+        if mask.dtype != 'uint8':
+            mask = mask.astype('uint8')
+
         blit_region = new_im2[yp1:yp2, xp1:xp2]
-        if approx:
-            temp = (mask * blitted + (255 - mask) * blit_region) >> 8
-            new_im2[yp1:yp2, xp1:xp2] = temp.astype('uint8', copy=False)
+
+        if len(im1.shape) == 3 and approx:
+            new_im2[yp1:yp2, xp1:xp2] = blit_module.fast_blit(blitted, blit_region, mask)
         else:
-            temp = np.minimum((mask * blitted + (255 - mask) * blit_region) / 255, 255)
-            new_im2[yp1:yp2, xp1:xp2] = temp.astype('uint8', copy=False)
+            mask = mask.astype('uint16')
+            new_im2[yp1:yp2, xp1:xp2] = np.minimum((mask * blitted + (255 - mask) * blit_region) / 255, 255)
     else:
         new_im2[yp1:yp2, xp1:xp2] = blitted
 

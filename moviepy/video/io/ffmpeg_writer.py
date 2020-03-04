@@ -217,7 +217,7 @@ def ffmpeg_write_video(clip, filename, fps, codec="libx264", bitrate=None,
         for t,frame in clip.iter_frames(progress_bar=progress_bar, with_times=True,
                                         fps=fps, dtype="uint8"):
             if withmask:
-                mask = (255*clip.mask.get_frame(t))
+                mask = (clip.mask.get_frame(t))
                 if mask.dtype != "uint8":
                     mask = mask.astype("uint8")
                 frame = np.dstack([frame,mask])
