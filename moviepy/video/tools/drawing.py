@@ -55,7 +55,7 @@ def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
             blit_region = im2
 
         if len(im1.shape) == 3 and approx:
-            im2[yp1:yp2, xp1:xp2] = blit_module2.fast_blit(blitted, blit_region, mask)
+            im2[yp1:yp2, xp1:xp2] = blit_module.fast_blit(blitted, blit_region, mask)
         else:
             mask = mask.astype('uint16')
             im2[yp1:yp2, xp1:xp2] = np.minimum(
