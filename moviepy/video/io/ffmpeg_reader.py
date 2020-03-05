@@ -5,6 +5,7 @@ using ffmpeg. It is quite ugly, as there are many pitfalls to avoid
 
 from __future__ import division
 
+from multiprocessing.pool import ThreadPool
 import subprocess as sp
 import re
 import warnings
@@ -68,6 +69,8 @@ class FFMPEG_VideoReader:
         self.bufsize= bufsize
         self.initialize()
 
+        self.pool = ThreadPool(processes=1)
+        self.nextread = None
 
         self.pos = 1
         self.lastread = self.read_frame()
@@ -113,11 +116,16 @@ class FFMPEG_VideoReader:
         self.pos += n
 
 
-    def read_frame(self):
+    def read_frame(self, from_async_launch=False):
         w, h = self.size
         nbytes= self.depth*w*h
 
         s = self.proc.stdout.read(nbytes)
+
+        # EOF
+        if from_async_launch and len(s) == 0:
+            return self.lastread
+        
         if len(s) != nbytes:
 
             warnings.warn("Warning: in file %s, "%(self.filename)+
@@ -173,16 +181,30 @@ class FFMPEG_VideoReader:
             self.lastread = self.read_frame()
 
         if pos == self.pos:
+            if self.nextread == None:
+                # Launch async job to read next frame
+                self.nextread = self.pool.apply_async(self.read_frame, (True,))
             return self.lastread
         else:
-            if (pos < self.pos) or (pos > self.pos + 100):
-                self.initialize(t)
+            if pos == self.pos + 1:          
+                # Wait async job to finished
+                self.lastread = self.nextread.get()
+                # Launch another async job
+                self.nextread = self.pool.apply_async(self.read_frame, (True,))
+                # Increment
                 self.pos = pos
+                return self.lastread
             else:
-                self.skip_frames(pos-self.pos-1)
-            result = self.read_frame()
-            self.pos = pos
-            return result
+                if (pos < self.pos) or (pos > self.pos + 100):
+                    self.initialize(t)
+                    self.pos = pos
+                    self.nextread = None
+                else:
+                    self.skip_frames(pos-self.pos-1)
+
+                result = self.read_frame()
+                self.pos = pos
+                return result
 
     def close(self):
         if self.proc:

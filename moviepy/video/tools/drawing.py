@@ -33,27 +33,39 @@ def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
     if (xp1 >= xp2) or (yp1 >= yp2):
         return im2
 
-    blitted = im1[y1:y2, x1:x2]
+    im1_use_ref = (y1 == 0 and y2 == h1 and x1 == 0 and x2 == w1)
+    im2_use_ref = (yp1 == 0 and yp2 == h2 and xp1 == 0 and xp2 == w2)
 
-    new_im2 = im2
+    if im1_use_ref:
+        blitted = im1
+    else:
+        blitted = im1[y1:y2, x1:x2]
 
     if mask is not None:
-        mask = mask[y1:y2, x1:x2]
+        blit_region = None
+
+        if not im1_use_ref:
+            mask = mask[y1:y2, x1:x2]
         if mask.dtype != 'uint8':
             mask = mask.astype('uint8')
 
-        blit_region = new_im2[yp1:yp2, xp1:xp2]
+        if not im2_use_ref:
+            blit_region = im2[yp1:yp2, xp1:xp2]
+        else:
+            blit_region = im2
 
         if len(im1.shape) == 3 and approx:
-            new_im2[yp1:yp2, xp1:xp2] = blit_module.fast_blit(blitted, blit_region, mask)
+            im2[yp1:yp2, xp1:xp2] = blit_module2.fast_blit(blitted, blit_region, mask)
         else:
             mask = mask.astype('uint16')
-            new_im2[yp1:yp2, xp1:xp2] = np.minimum((mask * blitted + (255 - mask) * blit_region) / 255, 255)
+            im2[yp1:yp2, xp1:xp2] = np.minimum(
+                (mask * blitted + (255 - mask) * blit_region) / 255, 255)
     else:
-        new_im2[yp1:yp2, xp1:xp2] = blitted
-
-    return new_im2
-
+        if im2_use_ref:
+            im2 = blitted
+        else:
+            im2[yp1:yp2, xp1:xp2] = blitted
+    return im2
 
 
 def color_gradient(size,p1,p2=None,vector=None, r=None, col1=0,col2=1.0,

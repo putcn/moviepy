@@ -99,13 +99,19 @@ extra_reqs = {
     "test": test_reqs
     }
 
+extra_compile_args = [
+        "-Ofast", 
+        "-funroll-loops"
+    ]
+
 # Load the README.
 with open('README.rst', 'r', 'utf-8') as f:
     readme = f.read()
 
 blit_module = Extension('blit_module', 
     sources=['./cmodule/blit_module.c'], 
-    include_dirs=[numpy.get_include()])
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=extra_compile_args)
 
 setup(
     name='moviepy',
