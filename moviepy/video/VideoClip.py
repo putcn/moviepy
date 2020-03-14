@@ -702,6 +702,9 @@ class VideoClip(Clip):
         Returns a semi-transparent copy of the clip where the mask is
         multiplied by ``op`` (any float, normally between 0 and 1).
         """
+        
+        op = int(op * 255)
+
         if approx:
             self.mask = self.mask.fl_image(lambda pic: np.minimum((op * pic.astype('uint16')).astype('uint16') >> 8, 255).astype('uint8'))
         else:
