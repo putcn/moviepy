@@ -186,7 +186,7 @@ class FFMPEG_VideoReader:
                 self.nextread = self.pool.apply_async(self.read_frame, (True,))
             return self.lastread
         else:
-            if pos == self.pos + 1:          
+            if pos == self.pos + 1:
                 # Wait async job to finished
                 self.lastread = self.nextread.get()
                 # Launch another async job
@@ -195,16 +195,25 @@ class FFMPEG_VideoReader:
                 self.pos = pos
                 return self.lastread
             else:
+                # Re-initialize if it already passed the seek position or
+                # far from seek position
                 if (pos < self.pos) or (pos > self.pos + 100):
                     self.initialize(t)
                     self.pos = pos
                     self.nextread = None
                 else:
-                    self.skip_frames(pos-self.pos-1)
+                    # Wait if nessecary
+                    if self.nextread == None:
+                        self.skip_frames(pos-self.pos-1)
+                    else:
+                        self.nextread.get()
+                        self.skip_frames(pos-self.pos-2)
 
-                result = self.read_frame()
+                # Read seek position and launch job for next frame
+                self.lastread = self.read_frame()
+                self.nextread = self.pool.apply_async(self.read_frame, (True,))
                 self.pos = pos
-                return result
+                return self.lastread
 
     def close(self):
         if self.proc:
