@@ -186,7 +186,7 @@ class FFMPEG_VideoReader:
                 self.nextread = self.pool.apply_async(self.read_frame, (True,))
             return self.lastread
         else:
-            if pos == self.pos + 1:
+            if self.nextread != None and pos == self.pos + 1:
                 # Wait async job to finished
                 self.lastread = self.nextread.get()
                 # Launch another async job
