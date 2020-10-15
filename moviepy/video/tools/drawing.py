@@ -4,9 +4,10 @@ methods that are difficult to do with the existing Python libraries.
 """
 
 import numpy as np
+import blit_module
 
 
-def blit(im1, im2, pos=None, mask=None, ismask=False):
+def blit(im1, im2, pos=None, mask=None, ismask=False, approx=True):
     """ Blit an image over another.
     
     Blits ``im1`` on ``im2`` as position ``pos=(x,y)``, using the
@@ -41,10 +42,12 @@ def blit(im1, im2, pos=None, mask=None, ismask=False):
         new_im2[yp1:yp2, xp1:xp2] = blitted
     else:
         mask = mask[y1:y2, x1:x2]
-        if len(im1.shape) == 3:
-            mask = np.dstack(3 * [mask])
         blit_region = new_im2[yp1:yp2, xp1:xp2]
-        new_im2[yp1:yp2, xp1:xp2] = (1.0 * mask * blitted + (1.0 - mask) * blit_region)
+        if len(im1.shape) == 3 and approx:
+            new_im2[yp1:yp2, xp1:xp2] = blit_module.fast_blit(blitted, blit_region, mask)
+        elif len(im1.shape) == 3 and not approx:
+            mask = np.dstack(3 * [mask])
+            new_im2[yp1:yp2, xp1:xp2] = (1.0 * mask * blitted + (1.0 - mask) * blit_region)
     
     return new_im2.astype('uint8') if (not ismask) else new_im2
 

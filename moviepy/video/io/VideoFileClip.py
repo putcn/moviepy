@@ -77,7 +77,7 @@ class VideoFileClip(VideoClip):
 
     def __init__(self, filename, has_mask=False,
                  audio=True, audio_buffersize=200000,
-                 target_resolution=None, resize_algorithm='bicubic',
+                 target_resolution=None, resize_algorithm='bilinear',
                  audio_fps=44100, audio_nbytes=2, verbose=False,
                  fps_source='tbr'):
 
@@ -103,7 +103,7 @@ class VideoFileClip(VideoClip):
         if has_mask:
 
             self.make_frame = lambda t: self.reader.get_frame(t)[:,:,:3]
-            mask_mf = lambda t: self.reader.get_frame(t)[:,:,3]/255.0
+            mask_mf = lambda t: self.reader.get_frame(t)[:,:,3]
             self.mask = (VideoClip(ismask=True, make_frame=mask_mf)
                          .set_duration(self.duration))
             self.mask.fps = self.fps
